@@ -1,0 +1,322 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điều Khiển 4 Servo</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .status {
+            font-size: 13px;
+            color: #00ffcc;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .servo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .servo-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .servo-card h2 {
+            font-size: 19px;
+            margin: 0 0 5px;
+        }
+
+        .feed-name {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.65);
+            overflow-wrap: anywhere;
+        }
+
+        .angle-display {
+            font-size: 52px;
+            font-weight: 800;
+            margin: 15px 0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            margin: 20px 0;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #00ffcc;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 50%;
+            background: #00ffcc;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 0;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #00ffcc;
+            color: #1e3c72;
+            border-color: #00ffcc;
+            transform: translateY(-2px);
+        }
+
+        .send-status {
+            min-height: 18px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.75);
+            overflow-wrap: anywhere;
+        }
+
+        .all-controls {
+            margin-top: 22px;
+            padding: 18px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .all-controls p {
+            margin-top: 0;
+        }
+
+        .all-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .servo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 23px;
+            }
+
+            .servo-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>BẢNG ĐIỀU KHIỂN 4 SERVO</h1>
+        <div class="status">● BẢNG ĐIỀU KHIỂN ADAFRUIT IO</div>
+
+        <div class="servo-grid" id="servoGrid"></div>
+
+        <section class="all-controls">
+            <p><strong>Điều khiển nhanh cả 4 servo</strong></p>
+            <div class="all-buttons">
+                <button class="btn" onclick="setAllAngles(0)">Tất cả 0°</button>
+                <button class="btn" onclick="setAllAngles(90)">Tất cả 90°</button>
+                <button class="btn" onclick="setAllAngles(180)">Tất cả 180°</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // CẤU HÌNH ADAFRUIT IO
+        const AIO_USERNAME = "TonTon1234";
+        const AIO_KEY = "YOUR_ADAFRUIT_IO_KEY";
+
+        // Tên feed phải khớp với feed trong tài khoản Adafruit IO.
+        const servos = [
+            { id: 1, name: "Servo 1", feed: "servo1-angle", angle: 90 },
+            { id: 2, name: "Servo 2", feed: "servo2-angle", angle: 90 },
+            { id: 3, name: "Servo 3", feed: "servo3-angle", angle: 90 },
+            { id: 4, name: "Servo 4", feed: "servo4-angle", angle: 90 }
+        ];
+
+        const timers = {};
+        const grid = document.getElementById("servoGrid");
+
+        // Tạo giao diện cho 4 servo.
+        servos.forEach(servo => {
+            const card = document.createElement("section");
+            card.className = "servo-card";
+
+            card.innerHTML = `
+                <h2>${servo.name}</h2>
+                <div class="feed-name">Feed: ${servo.feed}</div>
+
+                <div class="angle-display">
+                    <span id="angle-${servo.id}">90</span>&deg;
+                </div>
+
+                <input
+                    type="range"
+                    min="0"
+                    max="180"
+                    value="90"
+                    class="slider"
+                    id="slider-${servo.id}"
+                    aria-label="Góc ${servo.name}"
+                >
+
+                <div class="btn-group">
+                    <button class="btn" data-angle="0">0&deg;</button>
+                    <button class="btn" data-angle="90">90&deg;</button>
+                    <button class="btn" data-angle="180">180&deg;</button>
+                </div>
+
+                <div class="send-status" id="status-${servo.id}">
+                    Chưa gửi góc
+                </div>
+            `;
+
+            grid.appendChild(card);
+
+            const slider = card.querySelector(`#slider-${servo.id}`);
+
+            slider.addEventListener("input", function () {
+                updateDisplay(servo.id, this.value);
+
+                clearTimeout(timers[servo.id]);
+                timers[servo.id] = setTimeout(() => {
+                    sendAngle(servo, this.value);
+                }, 200);
+            });
+
+            card.querySelectorAll("[data-angle]").forEach(button => {
+                button.addEventListener("click", () => {
+                    const angle = Number(button.dataset.angle);
+                    slider.value = angle;
+                    updateDisplay(servo.id, angle);
+                    clearTimeout(timers[servo.id]);
+                    sendAngle(servo, angle);
+                });
+            });
+        });
+
+        function updateDisplay(id, angle) {
+            document.getElementById(`angle-${id}`).textContent = angle;
+        }
+
+        // Gửi góc đến feed tương ứng.
+        async function sendAngle(servo, angle) {
+            const status = document.getElementById(`status-${servo.id}`);
+            status.textContent = "Đang gửi...";
+
+            const url =
+                `https://io.adafruit.com/api/v2/${AIO_USERNAME}/feeds/${servo.feed}/data`;
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "X-AIO-Key": AIO_KEY,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        value: Number(angle)
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                status.textContent = `Đã gửi ${angle}° thành công`;
+                console.log(`${servo.name}: ${angle}°`);
+            } catch (error) {
+                status.textContent = "Gửi thất bại. Kiểm tra cấu hình.";
+                console.error(`Lỗi ${servo.name}:`, error);
+            }
+        }
+
+        // Đặt cùng góc cho cả 4 servo.
+        function setAllAngles(angle) {
+            servos.forEach(servo => {
+                document.getElementById(`slider-${servo.id}`).value = angle;
+                updateDisplay(servo.id, angle);
+                clearTimeout(timers[servo.id]);
+            });
+
+            // Gửi lần lượt để tránh tạo nhiều yêu cầu đồng thời.
+            servos.reduce(
+                (queue, servo) =>
+                    queue.then(() => sendAngle(servo, angle)),
+                Promise.resolve()
+            );
+        }
+    </script>
+</body>
+</html>
